@@ -3,46 +3,64 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local CoreGui = game:GetService("CoreGui")
-local function MakeDraggable(topbarobject, object)
-	local function CustomPos(topbarobject, object)
-		local Dragging = nil
-		local DragInput = nil
-		local DragStart = nil
-		local StartPosition = nil
+local function MakeDraggable(topbarObject, object)
+	-- Função de arrasto (posição)
+	local function setupDrag()
+		local dragging = false
+		local dragInput = nil
+		local dragStart = nil
+		local startPosition = nil
 
-		local function UpdatePos(input)
-			local Delta = input.Position - DragStart
-			local pos = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
-			local Tween = TweenService:Create(object, TweenInfo.new(0.2), {Position = pos})
-			Tween:Play()
+		local function updatePosition(input)
+			local delta = input.Position - dragStart
+			-- Define a nova posição diretamente (sem Tween)
+			object.Position = UDim2.new(
+				startPosition.X.Scale, startPosition.X.Offset + delta.X,
+				startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
+			)
 		end
 
-		topbarobject.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				Dragging = true
-				DragStart = input.Position
-				StartPosition = object.Position
+		-- Conexões que vamos desconectar depois
+		local inputBeganConn, inputChangedConn, uisChangedConn
 
-				input.Changed:Connect(function()
+		inputBeganConn = topbarObject.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				dragStart = input.Position
+				startPosition = object.Position
+
+				-- Monitora quando o input termina (soltei o botão)
+				local endConn
+				endConn = input.Changed:Connect(function()
 					if input.UserInputState == Enum.UserInputState.End then
-						Dragging = false
+						dragging = false
+						endConn:Disconnect()
+						-- Libera as conexões principais se desejar parar de ouvir
+						-- (opcional, apenas se quiser que o objeto só seja arrastável uma vez)
+						-- Neste exemplo continuamos ouvindo, mas podemos limpar aqui:
+						-- inputBeganConn:Disconnect()
+						-- inputChangedConn:Disconnect()
+						-- uisChangedConn:Disconnect()
 					end
 				end)
 			end
 		end)
 
-		topbarobject.InputChanged:Connect(function(input)
+		inputChangedConn = topbarObject.InputChanged:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-				DragInput = input
+				dragInput = input
 			end
 		end)
 
-		UserInputService.InputChanged:Connect(function(input)
-			if input == DragInput and Dragging then
-				UpdatePos(input)
+		uisChangedConn = UserInputService.InputChanged:Connect(function(input)
+			if input == dragInput and dragging then
+				updatePosition(input)
 			end
 		end)
 	end
+
+	-- Chama a configuração do arrasto
+	setupDrag()
 	local function CustomSize(object)
 		local Dragging = false
 		local DragInput = nil
