@@ -10,28 +10,61 @@ local FlurioreLib = {
     Flags = {},
     Themes = {
         Black = {
-            Name = "Black",
-            Background = Color3.fromRGB(15, 15, 15),
-            Container = Color3.fromRGB(20, 20, 20),
-            ContainerTransparency = 0.1,
-            Border = Color3.fromRGB(30, 30, 30),
-            Text = Color3.fromRGB(255, 255, 255),
-            SubText = Color3.fromRGB(180, 180, 180),
-            Accent = Color3.fromRGB(200, 200, 200),
-            ToggleOn = Color3.fromRGB(200, 200, 200),
-            ToggleOff = Color3.fromRGB(80, 80, 80),
-            SliderBar = Color3.fromRGB(60, 60, 60),
-            InputBg = Color3.fromRGB(25, 25, 25),
-            DropdownArrow = Color3.fromRGB(180, 180, 180),
-            TitleAccent = Color3.fromRGB(200, 200, 200), -- color for description line
+            Background = Color3.fromRGB(15,15,15),
+            Container = Color3.fromRGB(25,25,25),
+            ContainerTransparency = 0,
+            Border = Color3.fromRGB(50,50,50),
+            Text = Color3.fromRGB(255,255,255),
+            SubText = Color3.fromRGB(180,180,180),
+            Accent = Color3.fromRGB(200,200,200),
+            ToggleOn = Color3.fromRGB(200,200,200),
+            ToggleOff = Color3.fromRGB(80,80,80),
+            SliderBar = Color3.fromRGB(60,60,60),
+            InputBg = Color3.fromRGB(35,35,35),
+            DropdownArrow = Color3.fromRGB(180,180,180),
+            TitleAccent = Color3.fromRGB(200,200,200),
+            ElementStroke = Color3.fromRGB(255,255,255),
+            ElementStrokeTransparency = 0.8,
+        },
+        White = {
+            Background = Color3.fromRGB(245,245,245),
+            Container = Color3.fromRGB(230,230,230),
+            ContainerTransparency = 0,
+            Border = Color3.fromRGB(200,200,200),
+            Text = Color3.fromRGB(0,0,0),
+            SubText = Color3.fromRGB(80,80,80),
+            Accent = Color3.fromRGB(0,120,255),
+            ToggleOn = Color3.fromRGB(0,120,255),
+            ToggleOff = Color3.fromRGB(180,180,180),
+            SliderBar = Color3.fromRGB(200,200,200),
+            InputBg = Color3.fromRGB(220,220,220),
+            DropdownArrow = Color3.fromRGB(50,50,50),
+            TitleAccent = Color3.fromRGB(0,120,255),
+            ElementStroke = Color3.fromRGB(0,0,0),
+            ElementStrokeTransparency = 0.9,
+        },
+        Blue = {
+            Background = Color3.fromRGB(10,20,40),
+            Container = Color3.fromRGB(20,30,60),
+            ContainerTransparency = 0,
+            Border = Color3.fromRGB(40,60,100),
+            Text = Color3.fromRGB(255,255,255),
+            SubText = Color3.fromRGB(170,190,220),
+            Accent = Color3.fromRGB(0,180,255),
+            ToggleOn = Color3.fromRGB(0,180,255),
+            ToggleOff = Color3.fromRGB(80,80,120),
+            SliderBar = Color3.fromRGB(40,50,80),
+            InputBg = Color3.fromRGB(25,35,65),
+            DropdownArrow = Color3.fromRGB(170,190,220),
+            TitleAccent = Color3.fromRGB(0,180,255),
+            ElementStroke = Color3.fromRGB(255,255,255),
+            ElementStrokeTransparency = 0.8,
         }
     },
-    CurrentTheme = "Black",
+    CurrentTheme = "Black"
 }
 
-local Theme = FlurioreLib.Themes[FlurioreLib.CurrentTheme]
-
--- [[ Helper Functions ]]
+-- Helpers
 local function CircleClick(Button, X, Y)
     Button.ClipsDescendants = true
     local Circle = Instance.new("ImageLabel")
@@ -94,7 +127,6 @@ local function AddResizeHandle(object, minWidth, minHeight)
     handle.Parent = object
 
     local dragging, startPos, startSize
-
     handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -120,9 +152,18 @@ local function AddResizeHandle(object, minWidth, minHeight)
     end)
 end
 
--- [[ Save Manager ]]
+local function AddStroke(parent, color, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = 1
+    stroke.Transparency = transparency
+    stroke.Parent = parent
+    return stroke
+end
+
+-- Save / Load
 local function SaveSettings()
-    local success, result = pcall(function()
+    pcall(function()
         local data = {}
         for flagName, flag in pairs(FlurioreLib.Flags) do
             data[flagName] = flag.Value
@@ -131,34 +172,31 @@ local function SaveSettings()
             writefile("FlurioreLib_Settings.json", HttpService:JSONEncode(data))
         end
     end)
-    if not success then warn("Save failed: " .. tostring(result)) end
 end
 
 local function LoadSettings()
-    local success, result = pcall(function()
+    pcall(function()
         if not readfile then return end
         local content = readfile("FlurioreLib_Settings.json")
         if content then
             local data = HttpService:JSONDecode(content)
             for flagName, value in pairs(data) do
                 if FlurioreLib.Flags[flagName] then
-                    FlurioreLib.Flags[flagName]:Set(value, true) -- skip callback to avoid loops
+                    FlurioreLib.Flags[flagName]:Set(value, true)
                 end
             end
         end
     end)
-    if not success then warn("Load failed: " .. tostring(result)) end
 end
-
 LoadSettings()
 
--- [[ Notify ]]
+-- Notify
 function FlurioreLib:MakeNotify(config)
     config = config or {}
     config.Title = config.Title or "Notification"
     config.Content = config.Content or ""
     config.Duration = config.Duration or 5
-    config.Color = config.Color or Theme.Accent
+    local theme = self.Themes[self.CurrentTheme]
 
     local gui = Instance.new("ScreenGui")
     gui.Name = "NotifyGui_" .. tick()
@@ -170,34 +208,19 @@ function FlurioreLib:MakeNotify(config)
     layout.BackgroundTransparency = 1
     layout.Position = UDim2.new(1, -20, 1, -20)
     layout.Size = UDim2.new(0, 280, 1, 0)
-    layout.Name = "NotifyLayout"
     layout.Parent = gui
 
-    local count = 0
-    layout.ChildRemoved:Connect(function()
-        count = 0
-        for _, child in ipairs(layout:GetChildren()) do
-            if child:IsA("Frame") then
-                TweenService:Create(child, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                    Position = UDim2.new(0, 0, 1, -((child.Size.Y.Offset + 12) * count))
-                }):Play()
-                count = count + 1
-            end
-        end
-    end)
-
     local NotifyFrame = Instance.new("Frame")
-    NotifyFrame.BackgroundColor3 = Theme.Container
+    NotifyFrame.BackgroundColor3 = theme.Container
     NotifyFrame.BorderSizePixel = 0
-    NotifyFrame.Size = UDim2.new(1, 0, 0, 0)
-    NotifyFrame.Name = "NotifyFrame"
-    NotifyFrame.Parent = layout
+    NotifyFrame.Size = UDim2.new(1,0,0,0)
     NotifyFrame.AnchorPoint = Vector2.new(0,1)
-    NotifyFrame.Position = UDim2.new(0,0,1,-(#layout:GetChildren() * 65))
-
+    NotifyFrame.Position = UDim2.new(0,0,1,0)
+    NotifyFrame.Parent = layout
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0,6)
     UICorner.Parent = NotifyFrame
+    AddStroke(NotifyFrame, theme.ElementStroke, theme.ElementStrokeTransparency)
 
     local Top = Instance.new("Frame")
     Top.BackgroundTransparency = 1
@@ -207,7 +230,7 @@ function FlurioreLib:MakeNotify(config)
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Font = Enum.Font.GothamBold
     TitleLabel.Text = config.Title
-    TitleLabel.TextColor3 = Theme.Text
+    TitleLabel.TextColor3 = theme.Text
     TitleLabel.TextSize = 14
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.BackgroundTransparency = 1
@@ -218,7 +241,7 @@ function FlurioreLib:MakeNotify(config)
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Font = Enum.Font.SourceSans
     CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Theme.Text
+    CloseBtn.TextColor3 = theme.Text
     CloseBtn.TextSize = 14
     CloseBtn.AnchorPoint = Vector2.new(1,0.5)
     CloseBtn.BackgroundTransparency = 1
@@ -229,7 +252,7 @@ function FlurioreLib:MakeNotify(config)
     local ContentLabel = Instance.new("TextLabel")
     ContentLabel.Font = Enum.Font.Gotham
     ContentLabel.Text = config.Content
-    ContentLabel.TextColor3 = Theme.SubText
+    ContentLabel.TextColor3 = theme.SubText
     ContentLabel.TextSize = 12
     ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
     ContentLabel.BackgroundTransparency = 1
@@ -238,92 +261,56 @@ function FlurioreLib:MakeNotify(config)
     ContentLabel.Size = UDim2.new(1,-20,0,0)
     ContentLabel.Parent = NotifyFrame
 
-    -- Auto-size
     ContentLabel.Size = UDim2.new(1,-20,0,ContentLabel.TextBounds.Y + 5)
     NotifyFrame.Size = UDim2.new(1,0,0,ContentLabel.Size.Y.Offset + 35)
 
     local function close()
         TweenService:Create(NotifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Position = UDim2.new(1,40, NotifyFrame.Position.Y.Scale, NotifyFrame.Position.Y.Offset)
+            Position = UDim2.new(1,40,1,0)
         }):Play()
         task.wait(0.3)
         NotifyFrame:Destroy()
     end
-
     CloseBtn.MouseButton1Down:Connect(close)
     task.delay(config.Duration, close)
-
-    -- Entrance animation
-    NotifyFrame.Position = UDim2.new(1,40,1,0)
-    TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back), {
-        Position = UDim2.new(0,0,1,-(#layout:GetChildren() * 65))
-    }):Play()
-
     return { Close = close }
 end
 
--- [[ CreateWindow ]]
+-- CreateWindow
 function FlurioreLib:CreateWindow(config)
     config = config or {}
     config.Name = config.Name or "Fluriore Hub"
     config.Description = config.Description or ""
     config.TabWidth = config.TabWidth or 120
-    config.Theme = config.Theme or FlurioreLib.CurrentTheme -- allow per-window theme
+    config.Theme = config.Theme or self.CurrentTheme
 
-    local theme = FlurioreLib.Themes[config.Theme] or FlurioreLib.Themes.Black
+    local theme = self.Themes[config.Theme] or self.Themes.Black
 
     local windowGui = Instance.new("ScreenGui")
     windowGui.Name = "Window_" .. config.Name
     windowGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     windowGui.Parent = CoreGui
-    windowGui.Enabled = true
 
-    -- DropShadow holder
-    local DropShadowHolder = Instance.new("Frame")
-    DropShadowHolder.BackgroundTransparency = 1
-    DropShadowHolder.Size = UDim2.new(0, 550, 0, 350)
-    DropShadowHolder.Position = UDim2.new(0.5, -275, 0.5, -175)
-    DropShadowHolder.Name = "MainFrame"
-    DropShadowHolder.Parent = windowGui
-
-    local DropShadow = Instance.new("ImageLabel")
-    DropShadow.Image = "rbxassetid://6015897843"
-    DropShadow.ImageColor3 = Color3.new(0,0,0)
-    DropShadow.ImageTransparency = 0.5
-    DropShadow.ScaleType = Enum.ScaleType.Slice
-    DropShadow.SliceCenter = Rect.new(49,49,450,450)
-    DropShadow.AnchorPoint = Vector2.new(0.5,0.5)
-    DropShadow.BackgroundTransparency = 1
-    DropShadow.Position = UDim2.new(0.5,0,0.5,0)
-    DropShadow.Size = UDim2.new(1,47,1,47)
-    DropShadow.ZIndex = 0
-    DropShadow.Parent = DropShadowHolder
-
-    local Main = Instance.new("Frame")
-    Main.BackgroundColor3 = theme.Background
-    Main.BackgroundTransparency = theme.ContainerTransparency
-    Main.BorderSizePixel = 0
-    Main.Size = UDim2.new(1,-47,1,-47)
-    Main.Position = UDim2.new(0,0,0,0)
-    Main.Parent = DropShadow
-    Main.AnchorPoint = Vector2.new(0,0)
-    Main.ZIndex = 1
-
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0,6)
-    UICorner.Parent = Main
-
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = theme.Border
-    UIStroke.Thickness = 1.6
-    UIStroke.Parent = Main
+    -- Main container (replaces DropShadowHolder/Main)
+    local MainFrame = Instance.new("Frame")
+    MainFrame.BackgroundColor3 = theme.Background
+    MainFrame.BackgroundTransparency = 0
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Size = UDim2.new(0, 550, 0, 350)
+    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+    MainFrame.AnchorPoint = Vector2.new(0,0)
+    MainFrame.Parent = windowGui
+    local UICorner_Main = Instance.new("UICorner")
+    UICorner_Main.CornerRadius = UDim.new(0,6)
+    UICorner_Main.Parent = MainFrame
+    AddStroke(MainFrame, theme.Border, 0.5)  -- outer border
 
     -- Top bar
     local Top = Instance.new("Frame")
     Top.BackgroundTransparency = 1
     Top.Size = UDim2.new(1,0,0,38)
     Top.Name = "TopBar"
-    Top.Parent = Main
+    Top.Parent = MainFrame
 
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Font = Enum.Font.GothamBold
@@ -355,7 +342,6 @@ function FlurioreLib:CreateWindow(config)
     Close.BackgroundTransparency = 1
     Close.Position = UDim2.new(1,-8,0.5,0)
     Close.Size = UDim2.new(0,25,0,25)
-    Close.Name = "Close"
     Close.Parent = Top
     local CloseImg = Instance.new("ImageLabel")
     CloseImg.Image = "rbxassetid://9886659671"
@@ -372,7 +358,6 @@ function FlurioreLib:CreateWindow(config)
     MaxRestore.BackgroundTransparency = 1
     MaxRestore.Position = UDim2.new(1,-42,0.5,0)
     MaxRestore.Size = UDim2.new(0,25,0,25)
-    MaxRestore.Name = "MaxRestore"
     MaxRestore.Parent = Top
     local MaxImg = Instance.new("ImageLabel")
     MaxImg.Image = "rbxassetid://9886659406"
@@ -389,7 +374,6 @@ function FlurioreLib:CreateWindow(config)
     Min.BackgroundTransparency = 1
     Min.Position = UDim2.new(1,-76,0.5,0)
     Min.Size = UDim2.new(0,25,0,25)
-    Min.Name = "Minimize"
     Min.Parent = Top
     local MinImg = Instance.new("ImageLabel")
     MinImg.Image = "rbxassetid://9886659276"
@@ -404,14 +388,12 @@ function FlurioreLib:CreateWindow(config)
     LayersTab.BackgroundTransparency = 1
     LayersTab.Position = UDim2.new(0,9,0,50)
     LayersTab.Size = UDim2.new(0, config.TabWidth, 1, -59)
-    LayersTab.Name = "TabSidebar"
-    LayersTab.Parent = Main
+    LayersTab.Parent = MainFrame
 
     local ScrollTab = Instance.new("ScrollingFrame")
     ScrollTab.BackgroundTransparency = 1
     ScrollTab.ScrollBarThickness = 0
     ScrollTab.Size = UDim2.new(1,0,1,-50)
-    ScrollTab.Position = UDim2.new(0,0,0,0)
     ScrollTab.CanvasSize = UDim2.new(0,0,0,0)
     ScrollTab.Parent = LayersTab
 
@@ -420,7 +402,7 @@ function FlurioreLib:CreateWindow(config)
     UIListLayout_Tabs.SortOrder = Enum.SortOrder.LayoutOrder
     UIListLayout_Tabs.Parent = ScrollTab
 
-    -- Info section (player info at bottom of sidebar)
+    -- Player info
     local Info = Instance.new("Frame")
     Info.AnchorPoint = Vector2.new(1,1)
     Info.BackgroundColor3 = theme.Container
@@ -432,6 +414,7 @@ function FlurioreLib:CreateWindow(config)
     local UICorner_Info = Instance.new("UICorner")
     UICorner_Info.CornerRadius = UDim.new(0,5)
     UICorner_Info.Parent = Info
+    AddStroke(Info, theme.ElementStroke, theme.ElementStrokeTransparency)
 
     local LogoFrame = Instance.new("Frame")
     LogoFrame.AnchorPoint = Vector2.new(0,0.5)
@@ -441,9 +424,9 @@ function FlurioreLib:CreateWindow(config)
     LogoFrame.Position = UDim2.new(0,5,0.5,0)
     LogoFrame.Size = UDim2.new(0,30,0,30)
     LogoFrame.Parent = Info
-    local UICorner_Logo = Instance.new("UICorner")
-    UICorner_Logo.CornerRadius = UDim.new(0,1000)
-    UICorner_Logo.Parent = LogoFrame
+    local UICorner_LogoF = Instance.new("UICorner")
+    UICorner_LogoF.CornerRadius = UDim.new(0,1000)
+    UICorner_LogoF.Parent = LogoFrame
 
     local Logo = Instance.new("ImageLabel")
     Logo.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
@@ -472,7 +455,7 @@ function FlurioreLib:CreateWindow(config)
     Layers.BackgroundTransparency = 1
     Layers.Position = UDim2.new(0, config.TabWidth + 18, 0, 50)
     Layers.Size = UDim2.new(1, -(config.TabWidth + 27), 1, -59)
-    Layers.Parent = Main
+    Layers.Parent = MainFrame
 
     local TabNameLabel = Instance.new("TextLabel")
     TabNameLabel.Font = Enum.Font.GothamBold
@@ -503,25 +486,25 @@ function FlurioreLib:CreateWindow(config)
     LayersPageLayout.EasingStyle = Enum.EasingStyle.Quad
     LayersPageLayout.Parent = LayersFolder
 
-    -- Make window draggable and resizable
-    MakeDraggable(Top, DropShadowHolder)
-    AddResizeHandle(DropShadowHolder, 500, 300)
+    -- Draggable and Resizable
+    MakeDraggable(Top, MainFrame)
+    AddResizeHandle(MainFrame, 500, 300)
 
-    -- Window state management
+    -- Window controls logic
     local isMaximized = false
     local oldPos, oldSize
     local function maximize()
         if not isMaximized then
-            oldPos = DropShadowHolder.Position
-            oldSize = DropShadowHolder.Size
-            TweenService:Create(DropShadowHolder, TweenInfo.new(0.3), {
+            oldPos = MainFrame.Position
+            oldSize = MainFrame.Size
+            TweenService:Create(MainFrame, TweenInfo.new(0.3), {
                 Position = UDim2.new(0,0,0,0),
                 Size = UDim2.new(1,0,1,0)
             }):Play()
             MaxImg.Image = "rbxassetid://9886659001"
             isMaximized = true
         else
-            TweenService:Create(DropShadowHolder, TweenInfo.new(0.3), {
+            TweenService:Create(MainFrame, TweenInfo.new(0.3), {
                 Position = oldPos,
                 Size = oldSize
             }):Play()
@@ -533,18 +516,16 @@ function FlurioreLib:CreateWindow(config)
         CircleClick(MaxRestore, Mouse.X, Mouse.Y)
         maximize()
     end)
-
     Min.MouseButton1Down:Connect(function()
         CircleClick(Min, Mouse.X, Mouse.Y)
         windowGui.Enabled = false
     end)
-
     Close.MouseButton1Down:Connect(function()
         CircleClick(Close, Mouse.X, Mouse.Y)
         windowGui:Destroy()
     end)
 
-    -- Toggle UI with RightShift
+    -- Toggle UI keybind (RightShift)
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         if input.KeyCode == Enum.KeyCode.RightShift then
@@ -555,14 +536,14 @@ function FlurioreLib:CreateWindow(config)
     -- Tab system
     local window = {
         Tabs = {},
-        Flags = {}, -- local flags (will still register globally)
+        Flags = {},
         WindowGui = windowGui,
         Destroy = function() windowGui:Destroy() end,
         ToggleUI = function() windowGui.Enabled = not windowGui.Enabled end
     }
 
+    local chooseFrame
     local firstTab = true
-    local chooseFrame -- the highlight bar for tabs
 
     function window:CreateTab(tabConfig)
         tabConfig = tabConfig or {}
@@ -571,7 +552,7 @@ function FlurioreLib:CreateWindow(config)
 
         local tabIndex = #window.Tabs
 
-        -- Create ScrollingFrame for this tab's sections
+        -- ScrollingFrame for sections
         local ScrolLayers = Instance.new("ScrollingFrame")
         ScrolLayers.BackgroundTransparency = 1
         ScrolLayers.ScrollBarThickness = 0
@@ -591,12 +572,11 @@ function FlurioreLib:CreateWindow(config)
         TabButton.BorderSizePixel = 0
         TabButton.LayoutOrder = tabIndex
         TabButton.Size = UDim2.new(1,0,0,30)
-        TabButton.Name = "Tab_" .. tabConfig.Name
         TabButton.Parent = ScrollTab
-
         local UICorner_Tab = Instance.new("UICorner")
         UICorner_Tab.CornerRadius = UDim.new(0,4)
         UICorner_Tab.Parent = TabButton
+        AddStroke(TabButton, theme.ElementStroke, theme.ElementStrokeTransparency)
 
         local TabIcon = Instance.new("ImageLabel")
         TabIcon.Image = tabConfig.Icon
@@ -640,15 +620,12 @@ function FlurioreLib:CreateWindow(config)
         TapButton.MouseButton1Down:Connect(function()
             CircleClick(TapButton, Mouse.X, Mouse.Y)
             if chooseFrame and TabButton.LayoutOrder ~= LayersPageLayout.CurrentPage.LayoutOrder then
-                -- Deselect all tabs
                 for _, tabFrame in ipairs(ScrollTab:GetChildren()) do
                     if tabFrame:IsA("Frame") then
                         TweenService:Create(tabFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {BackgroundTransparency = 0.999}):Play()
                     end
                 end
-                -- Select this tab
                 TweenService:Create(TabButton, TweenInfo.new(0.4), {BackgroundTransparency = 0.92}):Play()
-                -- Animate highlight
                 TweenService:Create(chooseFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
                     Position = UDim2.new(0,2,0,9 + (33 * TabButton.LayoutOrder))
                 }):Play()
@@ -661,7 +638,6 @@ function FlurioreLib:CreateWindow(config)
             end
         end)
 
-        -- Canvas auto-size
         local function updateCanvas()
             local y = 0
             for _, child in ipairs(ScrolLayers:GetChildren()) do
@@ -674,7 +650,6 @@ function FlurioreLib:CreateWindow(config)
         ScrolLayers.ChildAdded:Connect(updateCanvas)
         ScrolLayers.ChildRemoved:Connect(updateCanvas)
 
-        -- Sections
         local sections = {}
         function sections:AddSection(title)
             title = title or "Section"
@@ -694,12 +669,13 @@ function FlurioreLib:CreateWindow(config)
             SectionReal.LayoutOrder = 1
             SectionReal.Size = UDim2.new(1,0,0,30)
             SectionReal.Parent = Section
-
             local UICorner_Sec = Instance.new("UICorner")
             UICorner_Sec.CornerRadius = UDim.new(0,4)
             UICorner_Sec.Parent = SectionReal
+            AddStroke(SectionReal, theme.ElementStroke, theme.ElementStrokeTransparency)
 
             local SectionButton = Instance.new("TextButton")
+            SectionButton.Text = ""   -- CORREÇÃO DO BUG "button"
             SectionButton.BackgroundTransparency = 1
             SectionButton.Size = UDim2.new(1,0,1,0)
             SectionButton.Parent = SectionReal
@@ -738,11 +714,9 @@ function FlurioreLib:CreateWindow(config)
             SectionDecideFrame.Position = UDim2.new(0.5,0,0,33)
             SectionDecideFrame.Size = UDim2.new(1,0,0,2)
             SectionDecideFrame.Parent = Section
-
             local UICorner_Dec = Instance.new("UICorner")
             UICorner_Dec.Parent = SectionDecideFrame
 
-            -- Items container
             local SectionAdd = Instance.new("Frame")
             SectionAdd.BackgroundTransparency = 1
             SectionAdd.AnchorPoint = Vector2.new(0.5,0)
@@ -806,7 +780,7 @@ function FlurioreLib:CreateWindow(config)
                 end
             end
 
-            -- AddParagraph
+            -- Paragraph
             function items:AddParagraph(config)
                 config = config or {}
                 config.Title = config.Title or "Title"
@@ -819,10 +793,10 @@ function FlurioreLib:CreateWindow(config)
                 Paragraph.LayoutOrder = 1
                 Paragraph.Size = UDim2.new(1,0,0,46)
                 Paragraph.Parent = SectionAdd
-
                 local UICorner_Para = Instance.new("UICorner")
                 UICorner_Para.CornerRadius = UDim.new(0,4)
                 UICorner_Para.Parent = Paragraph
+                AddStroke(Paragraph, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local ParaTitle = Instance.new("TextLabel")
                 ParaTitle.Font = Enum.Font.GothamBold
@@ -848,7 +822,6 @@ function FlurioreLib:CreateWindow(config)
                 ParaContent.TextWrapped = true
                 ParaContent.Parent = Paragraph
 
-                -- Auto-size content
                 local function resize()
                     ParaContent.TextWrapped = false
                     ParaContent.Size = UDim2.new(1,-16,0, ParaContent.TextBounds.Y)
@@ -859,17 +832,14 @@ function FlurioreLib:CreateWindow(config)
                 task.defer(resize)
 
                 return {
-                    Set = function(newConfig)
-                        if newConfig.Title then ParaTitle.Text = newConfig.Title end
-                        if newConfig.Content then
-                            ParaContent.Text = newConfig.Content
-                            resize()
-                        end
+                    Set = function(newCfg)
+                        if newCfg.Title then ParaTitle.Text = newCfg.Title end
+                        if newCfg.Content then ParaContent.Text = newCfg.Content; resize() end
                     end
                 }
             end
 
-            -- AddButton
+            -- Button
             function items:AddButton(config)
                 config = config or {}
                 config.Title = config.Title or "Button"
@@ -884,10 +854,10 @@ function FlurioreLib:CreateWindow(config)
                 Button.LayoutOrder = 1
                 Button.Size = UDim2.new(1,0,0,46)
                 Button.Parent = SectionAdd
-
                 local UICorner_Btn = Instance.new("UICorner")
                 UICorner_Btn.CornerRadius = UDim.new(0,4)
                 UICorner_Btn.Parent = Button
+                AddStroke(Button, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local BtnTitle = Instance.new("TextLabel")
                 BtnTitle.Font = Enum.Font.GothamBold
@@ -923,6 +893,7 @@ function FlurioreLib:CreateWindow(config)
                 task.defer(resize)
 
                 local BtnButton = Instance.new("TextButton")
+                BtnButton.Text = ""
                 BtnButton.BackgroundTransparency = 1
                 BtnButton.Size = UDim2.new(1,0,1,0)
                 BtnButton.Parent = Button
@@ -946,11 +917,10 @@ function FlurioreLib:CreateWindow(config)
                     CircleClick(BtnButton, Mouse.X, Mouse.Y)
                     config.Callback()
                 end)
-
                 return {}
             end
 
-            -- AddToggle
+            -- Toggle
             function items:AddToggle(config)
                 config = config or {}
                 config.Title = config.Title or "Toggle"
@@ -969,10 +939,10 @@ function FlurioreLib:CreateWindow(config)
                 Toggle.LayoutOrder = 1
                 Toggle.Size = UDim2.new(1,0,0,46)
                 Toggle.Parent = SectionAdd
-
                 local UICorner_Tog = Instance.new("UICorner")
                 UICorner_Tog.CornerRadius = UDim.new(0,4)
                 UICorner_Tog.Parent = Toggle
+                AddStroke(Toggle, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local TogTitle = Instance.new("TextLabel")
                 TogTitle.Font = Enum.Font.GothamBold
@@ -1008,11 +978,11 @@ function FlurioreLib:CreateWindow(config)
                 task.defer(resize)
 
                 local ToggleButton = Instance.new("TextButton")
+                ToggleButton.Text = ""
                 ToggleButton.BackgroundTransparency = 1
                 ToggleButton.Size = UDim2.new(1,0,1,0)
                 ToggleButton.Parent = Toggle
 
-                -- Switch UI
                 local SwitchFrame = Instance.new("Frame")
                 SwitchFrame.AnchorPoint = Vector2.new(1,0.5)
                 SwitchFrame.BackgroundColor3 = theme.ToggleOff
@@ -1021,16 +991,10 @@ function FlurioreLib:CreateWindow(config)
                 SwitchFrame.Position = UDim2.new(1,-30,0.5,0)
                 SwitchFrame.Size = UDim2.new(0,30,0,15)
                 SwitchFrame.Parent = Toggle
-
                 local UICorner_Switch = Instance.new("UICorner")
                 UICorner_Switch.CornerRadius = UDim.new(0,8)
                 UICorner_Switch.Parent = SwitchFrame
-
-                local SwitchStroke = Instance.new("UIStroke")
-                SwitchStroke.Color = theme.Border
-                SwitchStroke.Thickness = 2
-                SwitchStroke.Transparency = 0.9
-                SwitchStroke.Parent = SwitchFrame
+                AddStroke(SwitchFrame, theme.ElementStroke, 0.7)
 
                 local Knob = Instance.new("Frame")
                 Knob.BackgroundColor3 = theme.Text
@@ -1048,12 +1012,10 @@ function FlurioreLib:CreateWindow(config)
                     if value then
                         TweenService:Create(TogTitle, TweenInfo.new(0.2), {TextColor3 = theme.Accent}):Play()
                         TweenService:Create(Knob, TweenInfo.new(0.2), {Position = UDim2.new(0,15,0,0)}):Play()
-                        TweenService:Create(SwitchStroke, TweenInfo.new(0.2), {Color = theme.Accent, Transparency = 0}):Play()
                         TweenService:Create(SwitchFrame, TweenInfo.new(0.2), {BackgroundColor3 = theme.Accent, BackgroundTransparency = 0}):Play()
                     else
                         TweenService:Create(TogTitle, TweenInfo.new(0.2), {TextColor3 = theme.Text}):Play()
                         TweenService:Create(Knob, TweenInfo.new(0.2), {Position = UDim2.new(0,0,0,0)}):Play()
-                        TweenService:Create(SwitchStroke, TweenInfo.new(0.2), {Color = theme.Border, Transparency = 0.9}):Play()
                         TweenService:Create(SwitchFrame, TweenInfo.new(0.2), {BackgroundColor3 = theme.ToggleOff, BackgroundTransparency = 0.92}):Play()
                     end
                     if not noCallback then config.Callback(value) end
@@ -1065,13 +1027,12 @@ function FlurioreLib:CreateWindow(config)
                     ToggleValue = not ToggleValue
                     ToggleFunc:Set(ToggleValue)
                 end)
-
-                ToggleFunc:Set(ToggleValue, true) -- initial set without callback
+                ToggleFunc:Set(ToggleValue, true)
                 addFlagSupport(ToggleFunc, config)
                 return ToggleFunc
             end
 
-            -- AddSlider
+            -- Slider
             function items:AddSlider(config)
                 config = config or {}
                 config.Title = config.Title or "Slider"
@@ -1093,10 +1054,10 @@ function FlurioreLib:CreateWindow(config)
                 Slider.LayoutOrder = 1
                 Slider.Size = UDim2.new(1,0,0,46)
                 Slider.Parent = SectionAdd
-
                 local UICorner_Sli = Instance.new("UICorner")
                 UICorner_Sli.CornerRadius = UDim.new(0,4)
                 UICorner_Sli.Parent = Slider
+                AddStroke(Slider, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local SliTitle = Instance.new("TextLabel")
                 SliTitle.Font = Enum.Font.GothamBold
@@ -1160,7 +1121,6 @@ function FlurioreLib:CreateWindow(config)
                 SliderFrame.Position = UDim2.new(1,-20,0.5,0)
                 SliderFrame.Size = UDim2.new(0,100,0,3)
                 SliderFrame.Parent = Slider
-
                 local UICorner_SF = Instance.new("UICorner")
                 UICorner_SF.Parent = SliderFrame
 
@@ -1215,7 +1175,6 @@ function FlurioreLib:CreateWindow(config)
                         dragging = false
                     end
                 end)
-
                 TextBox.FocusLost:Connect(function()
                     local num = tonumber(TextBox.Text) or config.Min
                     SliderFunc:Set(num)
@@ -1226,14 +1185,14 @@ function FlurioreLib:CreateWindow(config)
                 return SliderFunc
             end
 
-            -- AddInput
+            -- Input
             function items:AddInput(config)
                 config = config or {}
                 config.Title = config.Title or "Input"
                 config.Content = config.Content or ""
                 config.Placeholder = config.Placeholder or "..."
-                config.Callback = config.Callback or function() end
                 config.Flag = config.Flag
+                config.Callback = config.Callback or function() end
 
                 local InputValue = ""
                 local InputFunc = { Value = InputValue }
@@ -1245,10 +1204,10 @@ function FlurioreLib:CreateWindow(config)
                 Input.LayoutOrder = 1
                 Input.Size = UDim2.new(1,0,0,46)
                 Input.Parent = SectionAdd
-
                 local UICorner_Inp = Instance.new("UICorner")
                 UICorner_Inp.CornerRadius = UDim.new(0,4)
                 UICorner_Inp.Parent = Input
+                AddStroke(Input, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local InpTitle = Instance.new("TextLabel")
                 InpTitle.Font = Enum.Font.GothamBold
@@ -1292,10 +1251,10 @@ function FlurioreLib:CreateWindow(config)
                 InputFrame.Position = UDim2.new(1,-7,0.5,0)
                 InputFrame.Size = UDim2.new(0,148,0,30)
                 InputFrame.Parent = Input
-
                 local UICorner_IF = Instance.new("UICorner")
                 UICorner_IF.CornerRadius = UDim.new(0,4)
                 UICorner_IF.Parent = InputFrame
+                AddStroke(InputFrame, theme.ElementStroke, 0.8)
 
                 local InputBox = Instance.new("TextBox")
                 InputBox.Font = Enum.Font.Gotham
@@ -1317,16 +1276,14 @@ function FlurioreLib:CreateWindow(config)
                     if not noCallback then config.Callback(value) end
                     SaveSettings()
                 end
-
                 InputBox.FocusLost:Connect(function()
                     InputFunc:Set(InputBox.Text)
                 end)
-
                 addFlagSupport(InputFunc, config)
                 return InputFunc
             end
 
-            -- AddDropdown
+            -- Dropdown
             function items:AddDropdown(config)
                 config = config or {}
                 config.Title = config.Title or "Dropdown"
@@ -1334,8 +1291,8 @@ function FlurioreLib:CreateWindow(config)
                 config.Multi = config.Multi or false
                 config.Options = config.Options or {}
                 config.Default = config.Default or {}
-                config.Callback = config.Callback or function() end
                 config.Flag = config.Flag
+                config.Callback = config.Callback or function() end
 
                 local Selected = config.Default
                 local Options = config.Options
@@ -1348,10 +1305,10 @@ function FlurioreLib:CreateWindow(config)
                 Dropdown.LayoutOrder = 1
                 Dropdown.Size = UDim2.new(1,0,0,46)
                 Dropdown.Parent = SectionAdd
-
                 local UICorner_Drop = Instance.new("UICorner")
                 UICorner_Drop.CornerRadius = UDim.new(0,4)
                 UICorner_Drop.Parent = Dropdown
+                AddStroke(Dropdown, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local DropTitle = Instance.new("TextLabel")
                 DropTitle.Font = Enum.Font.GothamBold
@@ -1394,12 +1351,13 @@ function FlurioreLib:CreateWindow(config)
                 SelectFrame.Position = UDim2.new(1,-7,0.5,0)
                 SelectFrame.Size = UDim2.new(0,148,0,30)
                 SelectFrame.Parent = Dropdown
-
                 local UICorner_Sel = Instance.new("UICorner")
                 UICorner_Sel.CornerRadius = UDim.new(0,4)
                 UICorner_Sel.Parent = SelectFrame
+                AddStroke(SelectFrame, theme.ElementStroke, 0.8)
 
                 local SelectBtn = Instance.new("TextButton")
+                SelectBtn.Text = ""
                 SelectBtn.BackgroundTransparency = 1
                 SelectBtn.Size = UDim2.new(1,0,1,0)
                 SelectBtn.Parent = SelectFrame
@@ -1424,7 +1382,6 @@ function FlurioreLib:CreateWindow(config)
                 Arrow.Size = UDim2.new(0,25,0,25)
                 Arrow.Parent = SelectFrame
 
-                -- Dropdown list (reuse single global? For simplicity, we create a overlay frame inside the window)
                 local DropList = Instance.new("Frame")
                 DropList.BackgroundColor3 = theme.Container
                 DropList.BorderSizePixel = 0
@@ -1432,10 +1389,10 @@ function FlurioreLib:CreateWindow(config)
                 DropList.Visible = false
                 DropList.ZIndex = 5
                 DropList.Parent = windowGui
-
                 local UICorner_DL = Instance.new("UICorner")
                 UICorner_DL.CornerRadius = UDim.new(0,4)
                 UICorner_DL.Parent = DropList
+                AddStroke(DropList, theme.ElementStroke, theme.ElementStrokeTransparency)
 
                 local ScrollDrop = Instance.new("ScrollingFrame")
                 ScrollDrop.BackgroundTransparency = 1
@@ -1469,12 +1426,13 @@ function FlurioreLib:CreateWindow(config)
                         Option.Size = UDim2.new(1,0,0,26)
                         Option.Name = "Option"
                         Option.Parent = ScrollDrop
-
                         local UICorner_Opt = Instance.new("UICorner")
                         UICorner_Opt.CornerRadius = UDim.new(0,3)
                         UICorner_Opt.Parent = Option
+                        AddStroke(Option, theme.ElementStroke, 0.9)
 
                         local OptionBtn = Instance.new("TextButton")
+                        OptionBtn.Text = ""
                         OptionBtn.BackgroundTransparency = 1
                         OptionBtn.Size = UDim2.new(1,0,1,0)
                         OptionBtn.Parent = Option
@@ -1538,7 +1496,6 @@ function FlurioreLib:CreateWindow(config)
                     if DropList.Visible then
                         DropList.Visible = false
                     else
-                        -- Position under select frame
                         local pos = SelectFrame.AbsolutePosition
                         DropList.Position = UDim2.new(0, pos.X, 0, pos.Y + SelectFrame.AbsoluteSize.Y + 2)
                         DropList.Size = UDim2.new(0,160,0, math.min(#Options * 28, 150))
@@ -1546,7 +1503,6 @@ function FlurioreLib:CreateWindow(config)
                     end
                 end)
 
-                -- Close when clicking outside
                 UserInputService.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 and DropList.Visible then
                         local abs = DropList.AbsolutePosition
@@ -1564,12 +1520,10 @@ function FlurioreLib:CreateWindow(config)
                 return DropdownFunc
             end
 
-            -- Return items interface
             updateCanvas()
             return items
         end
 
-        -- Return sections interface
         table.insert(window.Tabs, { Name = tabConfig.Name, Sections = sections, TabIndex = tabIndex })
         updateCanvas()
         return sections
